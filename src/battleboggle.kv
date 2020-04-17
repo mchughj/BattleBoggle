@@ -1,0 +1,204 @@
+#:kivy 1.0.9
+
+BattleBoggleGame:
+
+<BattleWord>:
+    orientation: 'horizontal'
+    Label:
+        text: str(root.wordNumber)
+        halign: 'right'
+        size_hint_x: None
+        width: 55
+
+    Label:
+        id: Word
+        text: ''
+
+
+<BattleTile>:
+    text: "R1C1"
+    on_release: self.buttonRelease()
+    
+
+<BattleBoggleGame>:
+    orientation: 'vertical'
+
+    Label:
+        size_hint_y: None
+        height: 50
+        text: 'Battle Boggle'
+        canvas:
+            Color: 
+                rgba: 1,0,1,0.5
+            Rectangle:
+                size: self.size
+                pos: self.pos
+      
+    BoxLayout: 
+        canvas:
+            Color:
+                rgba: 1,1,0,0.2
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        BoxLayout: 
+            id: OpponentWords
+            orientation: 'vertical'
+            
+            Label:
+                text: "Opponent Words"
+
+            BattleWord:
+                id: OpponentWord1
+                wordNumber: 1
+                visible: False
+            BattleWord:
+                id: OpponentWord2
+                wordNumber: 2
+            BattleWord:
+                id: OpponentWord3
+                wordNumber: 3
+            BattleWord:
+                id: OpponentWord4
+                wordNumber: 4
+            BattleWord:
+                id: OpponentWord5
+                wordNumber: 5
+            BattleWord:
+                id: OpponentWord6
+                wordNumber: 6
+            BattleWord:
+                id: OpponentWord7
+                wordNumber: 7
+            BattleWord:
+                id: OpponentWord8
+                wordNumber: 8
+            BattleWord:
+                id: OpponentWord9
+                wordNumber: 9
+            BattleWord:
+                id: OpponentWord10
+                wordNumber: 10
+
+        GridLayout:
+            id: Grid
+            rows: root.rows
+            cols: root.cols
+            spacing: (10,10)
+            col_default_width: 100
+            col_force_default: True
+            row_default_height: 100
+            row_force_default: True
+            size_hint: None, None
+            height: self.minimum_height
+            width: self.minimum_width
+            pos_hint: { 'left': 1, 'center_y': 0.5}
+
+            canvas:
+                Color: 
+                    rgba: 1,0,0,0.5
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+          
+            
+            BattleTile:
+                id: R1C1
+                boggleGame: root
+            BattleTile:
+                id: R1C2
+                boggleGame: root
+            BattleTile:
+                id: R1C3
+                boggleGame: root
+            BattleTile:
+                id: R2C1
+                boggleGame: root
+            BattleTile:
+                id: R2C2
+                boggleGame: root
+            BattleTile:
+                id: R2C3
+                boggleGame: root
+            BattleTile:
+                id: R3C1
+                boggleGame: root
+            BattleTile:
+                id: R3C2
+                boggleGame: root
+            BattleTile:
+                id: R3C3
+                boggleGame: root
+
+        BoxLayout: 
+            id: PlayerWords
+            orientation: 'vertical'
+            
+            Label:
+                text: "Player Words"
+
+            BattleWord:
+                id: PlayerWord1
+                wordNumber: 1
+                visible: False
+            BattleWord:
+                id: PlayerWord2
+                wordNumber: 2
+            BattleWord:
+                id: PlayerWord3
+                wordNumber: 3
+            BattleWord:
+                id: PlayerWord4
+                wordNumber: 4
+            BattleWord:
+                id: PlayerWord5
+                wordNumber: 5
+            BattleWord:
+                id: PlayerWord6
+                wordNumber: 6
+            BattleWord:
+                id: PlayerWord7
+                wordNumber: 7
+            BattleWord:
+                id: PlayerWord8
+                wordNumber: 8
+            BattleWord:
+                id: PlayerWord9
+                wordNumber: 9
+            BattleWord:
+                id: PlayerWord10
+                wordNumber: 10
+        
+
+    Button:
+        size_hint_y: None
+        height: 40
+        text: "Submit"
+        on_release: root.submitWord()
+
+    Label:
+        id: Info
+        size_hint_y: None
+        height: 100
+        text: ''
+        canvas:
+            Color: 
+                rgba: 1,0,1,0.1
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+    Label:
+        id: CurrentWord
+        size_hint_y: None
+        height: 100
+        text: ''
+        canvas:
+            Color: 
+                rgba: 0,0,1,0.2
+            Rectangle:
+                size: self.size
+                pos: self.pos
+            
+
