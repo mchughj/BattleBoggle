@@ -73,8 +73,59 @@ Afterwards anything that didn't match that should be removed.
 After I sorted all lines I saw that there was some stupid characters at the
 front that I just manually deleted.
 
-### Remove any line which didn't match our parsing.
+### Remove obsolete words 
 
-/^[^\t]*[^A-Za-z\t][^\t]*  
+```
+:%g!/obs\./d  
+```
 
 
+### Transform the parts of speech into prettier forms
+
+```
+:%s/^In\./^INoun/ 
+:%s/^Ia\./^IAdjective/ 
+:%s/^Iv.[^^I]*^I/^IVerb^I
+:%s/Noun & v./Noun and Verb/   
+:%s/^INoun pl.^I/Noun/ 
+:%s/^IAdv.^I/^IAdverb^I/
+:%s/^Iimp.[^^I]*^I/^IVerb^IPast tense /
+:%s/^Ipl.[^^I]*^I/^INoun^IPlural form / 
+:%s/^Iprep.^I/^IPreposition^I/g  
+:%s/^Iconj.^I/^IConjunction^I/g 
+:%s/ & adv./ and Adverb  
+:%s/^Iinterj.^I/^IInterjection^I/g 
+:%s/^Ip. [^^I]*^I/^IVerb^IPast form /  
+:%s/^Iadv. & a.^I/^IAdverb and Adjective^I/g  
+:%s/pron\./Pronoun/ 
+:%s/a\. & n\./adjective and noun/  
+:%s/^Isuperl\.^I/^ISuperlative^I/ 
+:%s/adj\./Adjective/ 
+:%s/Pronoun & a\./Pronoun  
+:%s/^Iadv. & conj\./^IAdverb and Conjunction/ 
+:%s/Noun & a\./Noun 
+:%s/compar\./Comparative/
+:%s/ & v\./ and Verb/
+:%s/Noun fem\./Noun Female/
+:%s/Noun sing\.[^^I]*^I/Noun^I/
+:%s/prep\. and/Preposition and/   
+:%s/adv\. & prep\./Adverb and Preposition 
+:%s/Nounpl\./Noun/
+:%s/Noun i\./Noun/ 
+:%s/Noun \.^I/Noun^I 
+:%s/^Icomp\.^I/^IComparative^I/  
+:%s/Verb t\./Verb/   
+:%s/, a\., and/, Adjective, and/ 
+:%s/ & conj\./ and Conjuction 
+:%s/adv\./Adverb/
+:%s/Adjective superl\./Adjective 
+```
+
+### Standardize the 'pointers'
+
+Some words refer to other words.  Make them all the same:
+
+```
+:%s/See the Note under /See / 
+:%s/See under /See /g
+```

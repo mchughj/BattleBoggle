@@ -2,8 +2,11 @@
 
 BattleBoggleGame:
 
+<ClearArea@BoxLayout>:
+
 <BattleWord>:
     orientation: 'horizontal'
+    on_release: self.buttonRelease()
     Label:
         text: str(root.wordNumber)
         halign: 'right'
@@ -24,6 +27,7 @@ BattleBoggleGame:
     orientation: 'vertical'
 
     Label:
+        spacing: 20
         size_hint_y: None
         height: 50
         text: 'Battle Boggle'
@@ -42,7 +46,8 @@ BattleBoggleGame:
                 size: self.size
                 pos: self.pos
 
-        BoxLayout: 
+        BoxLayout:
+            on_touch_up: root.clearCurrentWord()
             id: OpponentWords
             orientation: 'vertical'
             
@@ -52,36 +57,55 @@ BattleBoggleGame:
             BattleWord:
                 id: OpponentWord1
                 wordNumber: 1
-                visible: False
+                boggleGame: root
+                visible: True
             BattleWord:
                 id: OpponentWord2
+                boggleGame: root
                 wordNumber: 2
+                visible: False
             BattleWord:
                 id: OpponentWord3
+                boggleGame: root
                 wordNumber: 3
+                visible: False
             BattleWord:
                 id: OpponentWord4
+                boggleGame: root
                 wordNumber: 4
+                visible: False
             BattleWord:
                 id: OpponentWord5
+                boggleGame: root
                 wordNumber: 5
+                visible: False
             BattleWord:
                 id: OpponentWord6
+                boggleGame: root
                 wordNumber: 6
+                visible: False
             BattleWord:
                 id: OpponentWord7
+                boggleGame: root
                 wordNumber: 7
+                visible: False
             BattleWord:
                 id: OpponentWord8
+                boggleGame: root
                 wordNumber: 8
+                visible: False
             BattleWord:
                 id: OpponentWord9
+                boggleGame: root
                 wordNumber: 9
+                visible: False
             BattleWord:
                 id: OpponentWord10
+                boggleGame: root
                 wordNumber: 10
+                visible: False
 
-        GridLayout:
+        ClearArea: 
             id: Grid
             rows: root.rows
             cols: root.cols
@@ -94,6 +118,7 @@ BattleBoggleGame:
             height: self.minimum_height
             width: self.minimum_width
             pos_hint: { 'left': 1, 'center_y': 0.5}
+            on_touch_up: root.clearCurrentWord()
 
             canvas:
                 Color: 
@@ -113,6 +138,9 @@ BattleBoggleGame:
                 id: R1C3
                 boggleGame: root
             BattleTile:
+                id: R1C4
+                boggleGame: root
+            BattleTile:
                 id: R2C1
                 boggleGame: root
             BattleTile:
@@ -122,6 +150,9 @@ BattleBoggleGame:
                 id: R2C3
                 boggleGame: root
             BattleTile:
+                id: R2C4
+                boggleGame: root
+            BattleTile:
                 id: R3C1
                 boggleGame: root
             BattleTile:
@@ -129,6 +160,21 @@ BattleBoggleGame:
                 boggleGame: root
             BattleTile:
                 id: R3C3
+                boggleGame: root
+            BattleTile:
+                id: R3C4
+                boggleGame: root
+            BattleTile:
+                id: R4C1
+                boggleGame: root
+            BattleTile:
+                id: R4C2
+                boggleGame: root
+            BattleTile:
+                id: R4C3
+                boggleGame: root
+            BattleTile:
+                id: R4C4
                 boggleGame: root
 
         BoxLayout: 
@@ -140,42 +186,62 @@ BattleBoggleGame:
 
             BattleWord:
                 id: PlayerWord1
+                boggleGame: root
                 wordNumber: 1
-                visible: False
             BattleWord:
                 id: PlayerWord2
+                boggleGame: root
                 wordNumber: 2
             BattleWord:
                 id: PlayerWord3
+                boggleGame: root
                 wordNumber: 3
             BattleWord:
                 id: PlayerWord4
+                boggleGame: root
                 wordNumber: 4
             BattleWord:
                 id: PlayerWord5
+                boggleGame: root
                 wordNumber: 5
             BattleWord:
                 id: PlayerWord6
+                boggleGame: root
                 wordNumber: 6
             BattleWord:
                 id: PlayerWord7
+                boggleGame: root
                 wordNumber: 7
             BattleWord:
                 id: PlayerWord8
+                boggleGame: root
                 wordNumber: 8
             BattleWord:
                 id: PlayerWord9
+                boggleGame: root
                 wordNumber: 9
             BattleWord:
                 id: PlayerWord10
+                boggleGame: root
                 wordNumber: 10
         
 
-    Button:
+    BoxLayout: 
         size_hint_y: None
         height: 40
-        text: "Submit"
-        on_release: root.submitWord()
+        orientation: 'horizontal'
+        
+        Button:
+            size_hint_y: None
+            height: 40
+            text: "Submit"
+            on_release: root.submitWord()
+        
+        Button:
+            size_hint_y: None
+            height: 40
+            text: "Clear"
+            on_release: root.clearCurrentWord()
 
     Label:
         id: Info

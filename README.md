@@ -26,7 +26,7 @@ c:\Users\mchug\AppData\Local\Programs\Python\Python37\share\kivy-examples\tutori
 * Display
 ** Show the words you have gotten so far
 ** Shadow display the words your opponent has so far.
-** Show the definitions of the words when you mouse over the word
+** Show the definitions of the words when you click on the word
 
 * Timed game
 ** Show a percentage timer
@@ -47,7 +47,6 @@ c:\Users\mchug\AppData\Local\Programs\Python\Python37\share\kivy-examples\tutori
 ** Longest first word
 ** Shortest time to find first word
 ** Maximum number of words in a round
-** 
 
 * Special tiles
 ** Any letter at all
@@ -65,9 +64,6 @@ c:\Users\mchug\AppData\Local\Programs\Python\Python37\share\kivy-examples\tutori
 ** Minimum length word
 
 
-
---
-
-## Alternatives
+## Alternative Technology Stacks
 
 http://pyglet.org/ - is supposed to support multiple monitors and multiple windows.  Something to consider.  The likelihood that I can get multiple touchscreen monitors working off of a single raspberry pi board though feels low.  Also this assumes always head-to-head battles playing across from one another which is a bit limiting.  (It would require a lot of space and wouldn't allow for random battles with other people.)

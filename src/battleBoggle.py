@@ -13,6 +13,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout 
 from kivy.uix.widget import Widget
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.label import Label
 
 from random import choice
@@ -34,10 +35,13 @@ class BattleTile(ToggleButton):
     def buttonRelease(self):
         self.boggleGame.battleTileSelected(self)
 
+class ClearArea(ButtonBehavior, GridLayout):
+    pass
 
-class BattleWord(BoxLayout):
+class BattleWord(ButtonBehavior, BoxLayout):
     wordNumber = NumericProperty(0)
     visible = BooleanProperty(True)
+    boggleGame = ObjectProperty(None)
 
     def __init__(self,**kwargs):
         super(BattleWord, self).__init__(**kwargs)
@@ -49,18 +53,21 @@ class BattleWord(BoxLayout):
     def set_word(self, word):
         self.word = word
         if self.visible:
-            self.ids["Word"].text = word
+            self.ids.Word.text = word
         else:
-            self.ids["Word"].text = "X" * len(word)
+            self.ids.Word.text = "X" * len(word)
     
     def is_word(self, word):
         return self.word == word
 
+    def buttonRelease(self):
+        self.boggleGame.showDefinition(self.word)
+
 
 class BattleBoggleGame(BoxLayout):
     maxWordCount = NumericProperty(10)
-    rows = NumericProperty(3)
-    cols = NumericProperty(3)
+    rows = NumericProperty(4)
+    cols = NumericProperty(4)
 
     def get_cell(self, r, c):
         cellString = "R{}C{}".format(r, c)
@@ -69,7 +76,7 @@ class BattleBoggleGame(BoxLayout):
     def init_ai(self):
         self.ai = TrivialAI()
         self.ai.set_grid(self.grid, self.rows, self.cols)
-        self.ai.set_longest_word(4)
+        self.ai.set_longest_word(5)
         self.ai.build()
 
     def init_board(self):
@@ -114,8 +121,8 @@ class BattleBoggleGame(BoxLayout):
     def init_game(self, t):
         self.playerBattleWords = []
         self.opponentBattleWords = []
-        self.currentWord = self.ids["CurrentWord"]
-        self.info = self.ids["Info"]
+        self.currentWord = self.ids.CurrentWord
+        self.info = self.ids.Info
 
         for i in range(1,self.maxWordCount+1):
             w = "PlayerWord{}".format(i)
@@ -156,6 +163,7 @@ class BattleBoggleGame(BoxLayout):
                 # Found the word.  Shuffle all others down.
                 for y in range(x+1,self.opponentBattleWordIndex):
                     self.opponentBattleWords[y-1].set_word(self.opponentBattleWords[y].get_word())
+                self.opponentBattleWordIndex[self.opponentBattleWordIndex-1].set_word("")
                 self.opponentBattleWordIndex -= 1
                 return True
             x += 1
@@ -171,6 +179,7 @@ class BattleBoggleGame(BoxLayout):
                 # Found the word.  Shuffle all others down.
                 for y in range(x+1,self.playerBattleWordIndex):
                     self.playerBattleWords[y-1].set_word(self.playerBattleWords[y].get_word())
+                self.playerBattleWords[self.playerBattleWordIndex-1].set_word("")
                 self.playerBattleWordIndex -= 1
                 return True
         return False
@@ -215,6 +224,10 @@ class BattleBoggleGame(BoxLayout):
             self.opponentBattleWordIndex += 1
             self.opponentWordsFound += 1
             
+    def showDefinition(self, word):
+        self.info.text = "{}: {}".format(word, getDefinition(word))
+
+
     def update(self, dt):
         self.ai.update(dt)
         word = self.ai.nextWord()
