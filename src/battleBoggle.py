@@ -14,7 +14,12 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.widget import Widget
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.behaviors.button import ButtonBehavior
+from kivy.uix.behaviors.togglebutton import ToggleButtonBehavior
 from kivy.uix.label import Label
+from kivy.uix.image import Image
+from kivy.graphics import Color
+
+from kivy.logger import Logger
 
 from random import choice
 
@@ -25,15 +30,60 @@ from battleai import TrivialAI
 from kivy.config import Config
 Config.set('graphics', 'width', '1400')
 Config.set('graphics', 'height', '900')
+Config.set("kivy", "log_level", "info")
 
-class BattleTile(ToggleButton):
+class BattleTile(ToggleButtonBehavior, Image):
     boggleGame = ObjectProperty(None)
+    character = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        self.source = 'rsc/images/Wood-Tile-3.png'
+        super(BattleTile, self).__init__(**kwargs)
+
+    def on_state(self, widget, value):
+        Logger.info("on_state: value: %s, character: %s", value, self.character)
+        self.setSource(value)
+        # Jason :: TODO: Fix this as it is called even when I'm manually setting the state.
+        self.boggleGame.battleTileSelected(self)
+
+    def setSource(self, imageState):
+        if imageState == 'down':
+            prefix = 'rsc/images/Wood-Tile-Selected'.format(self.character)
+        else:
+            prefix = 'rsc/images/Wood-Tile'.format(self.character)
+        f = '{}-{}.png'.format(prefix, self.character)
+
+        Logger.info("setSource: imageState: %s, f: %s", imageState, f)
+        self.source = f
 
     def set_character(self, c):
+        Logger.info("set_character: c: %s", c)
         self.character = c
-        self.text = c
+        self.ids.l.text = c
+        self.setSource('normal')
+
     def buttonRelease(self):
-        self.boggleGame.battleTileSelected(self)
+        # This happens before the state is set so therefore it is not valid to do
+        # anything here that relies on the state member variable.
+        pass
+
+    def render(self):
+        Logger.info("render: going to render the battle tile")
+        c = Color(0.5, 0.5, 0, 1)
+
+        self.canvas.clear()
+        self.canvas.add(c)
+        self.rect = Rectangle(size=self.size, pos=self.pos)
+        self.canvas.add(self.rect)
+        label = CoreLabel(text="{}".format(self.character), font_size=20)
+        label.refresh()
+        text = label.texture
+
+        c = Color(0,0,0.5,1)
+        self.canvas.add(c)
+        pos = list(self.pos[i] + (self.size[i] - text.size[i]) / 2 for i in range(2))
+        self.canvas.add(Rectangle(size=text.size, pos=pos, texture=text))
+        self.canvas.ask_update()
 
 class ClearArea(ButtonBehavior, GridLayout):
     pass
@@ -138,11 +188,14 @@ class BattleBoggleGame(BoxLayout):
             i = self.letterSequence.index(tile)
             # Two cases.  Either the user clicked on the same letter and is attempting
             # to submit the word or they have clicked on another letter earlier in the word.
+            Logger.info(
+                    "battleTileSelected - onEnter: tile.state: %s, i: %d, len(letterSequence): %d", 
+                    tile.state, i, len(self.letterSequence))
             if i == len(self.letterSequence)-1:
                 self.submitWord()
             else:
                 # Clicking on a letter earlier in the word removes up to that letter.
-                for j in range(i, len(self.letterSequence)):
+                for j in range(i, len(self.letterSequence)-1):
                     self.letterSequence[j].state = 'normal'
 
                 self.letterSequence = self.letterSequence[:i]
@@ -163,7 +216,7 @@ class BattleBoggleGame(BoxLayout):
                 # Found the word.  Shuffle all others down.
                 for y in range(x+1,self.opponentBattleWordIndex):
                     self.opponentBattleWords[y-1].set_word(self.opponentBattleWords[y].get_word())
-                self.opponentBattleWordIndex[self.opponentBattleWordIndex-1].set_word("")
+                self.opponentBattleWords[self.opponentBattleWordIndex-1].set_word("")
                 self.opponentBattleWordIndex -= 1
                 return True
             x += 1
@@ -225,7 +278,8 @@ class BattleBoggleGame(BoxLayout):
             self.opponentWordsFound += 1
             
     def showDefinition(self, word):
-        self.info.text = "{}: {}".format(word, getDefinition(word))
+        if not word == '':
+            self.info.text = "{}: {}".format(word, getDefinition(word))
 
 
     def update(self, dt):
@@ -243,7 +297,7 @@ class BattleBoggleGame(BoxLayout):
 
 
     def on_touch_up(self, touch):
-        print(touch)
+        Logger.info("on_touch_up: touch: %s", touch)
 
     def submitWord(self):
         if isValidWord(self.currentWord.text):

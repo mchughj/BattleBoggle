@@ -2,7 +2,7 @@
 
 BattleBoggleGame:
 
-<ClearArea@BoxLayout>:
+<ClearArea>:
 
 <BattleWord>:
     orientation: 'horizontal'
@@ -20,7 +20,19 @@ BattleBoggleGame:
 
 <BattleTile>:
     text: "R1C1"
+    size_hint: (None, None)
+    width: 100
+    height: 100
     on_release: self.buttonRelease()
+
+    Label:
+        id: l
+        canvas:
+            Color:
+                rgba: 1,0,0,0.2
+            Rectangle:
+                size: self.size
+                pos: self.pos
     
 
 <BattleBoggleGame>:
@@ -122,11 +134,10 @@ BattleBoggleGame:
 
             canvas:
                 Color: 
-                    rgba: 1,0,0,0.5
+                    rgba: 1,1,1,1
                 Rectangle:
                     size: self.size
                     pos: self.pos
-          
             
             BattleTile:
                 id: R1C1
