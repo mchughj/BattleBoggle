@@ -7,7 +7,7 @@ class TrivialAI(object):
     def __init__(self):
         self.words = list()
         self.accumulatedTime = 0
-        self.nextWordFound = 3
+        self.nextWordFound = 30
 
     def set_grid(self, grid, r, c):
         self.grid = grid

@@ -11,6 +11,7 @@ from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.uix.boxlayout import BoxLayout 
 from kivy.uix.gridlayout import GridLayout 
+from kivy.uix.floatlayout import FloatLayout 
 from kivy.uix.widget import Widget
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.behaviors.button import ButtonBehavior
@@ -28,70 +29,62 @@ from wordsanddefinitions import isValidWord, getDefinition
 from battleai import TrivialAI
 
 from kivy.config import Config
-Config.set('graphics', 'width', '1400')
-Config.set('graphics', 'height', '900')
+
+WINDOW_WIDTH = 1400
+WINDOW_HEIGHT = 900
+
+Config.set('graphics', 'width', WINDOW_WIDTH)
+Config.set('graphics', 'height', WINDOW_HEIGHT)
 Config.set("kivy", "log_level", "info")
 
 class BattleTile(ToggleButtonBehavior, Image):
-    boggleGame = ObjectProperty(None)
+    boggleApp = ObjectProperty(None)
     character = ObjectProperty(None)
 
     def __init__(self, **kwargs):
-        self.source = 'rsc/images/Wood-Tile-3.png'
         super(BattleTile, self).__init__(**kwargs)
+        self.selectable = True
+        self.battle_word = None
+
+    def set_selectable(self, selectable):
+        self.selectable = selectable
+
+    def set_battle_word(self, word):
+        self.battle_word = word
 
     def on_state(self, widget, value):
         Logger.info("on_state: value: %s, character: %s", value, self.character)
-        self.setSource(value)
-        # Jason :: TODO: Fix this as it is called even when I'm manually setting the state.
-        self.boggleGame.battleTileSelected(self)
+        if self.selectable:
+            self.setTileImage(value)
 
-    def setSource(self, imageState):
+    def setTileImage(self, imageState):
         if imageState == 'down':
             prefix = 'rsc/images/Wood-Tile-Selected'.format(self.character)
         else:
             prefix = 'rsc/images/Wood-Tile'.format(self.character)
         f = '{}-{}.png'.format(prefix, self.character)
 
-        Logger.info("setSource: imageState: %s, f: %s", imageState, f)
+        Logger.info("setTileImage: imageState: %s, f: %s", imageState, f)
         self.source = f
 
     def set_character(self, c):
         Logger.info("set_character: c: %s", c)
         self.character = c
-        self.ids.l.text = c
-        self.setSource('normal')
+        self.setTileImage('normal')
 
-    def buttonRelease(self):
-        # This happens before the state is set so therefore it is not valid to do
-        # anything here that relies on the state member variable.
-        pass
+    def _do_release(self, *args):
+        if not self.selectable:
+            self.battle_word.buttonRelease()
+            return 
 
-    def render(self):
-        Logger.info("render: going to render the battle tile")
-        c = Color(0.5, 0.5, 0, 1)
+        super(BattleTile, self)._do_release(args)
+        self.boggleApp.battleTileSelected(self)
 
-        self.canvas.clear()
-        self.canvas.add(c)
-        self.rect = Rectangle(size=self.size, pos=self.pos)
-        self.canvas.add(self.rect)
-        label = CoreLabel(text="{}".format(self.character), font_size=20)
-        label.refresh()
-        text = label.texture
-
-        c = Color(0,0,0.5,1)
-        self.canvas.add(c)
-        pos = list(self.pos[i] + (self.size[i] - text.size[i]) / 2 for i in range(2))
-        self.canvas.add(Rectangle(size=text.size, pos=pos, texture=text))
-        self.canvas.ask_update()
-
-class ClearArea(ButtonBehavior, GridLayout):
-    pass
 
 class BattleWord(ButtonBehavior, BoxLayout):
     wordNumber = NumericProperty(0)
     visible = BooleanProperty(True)
-    boggleGame = ObjectProperty(None)
+    boggleApp = ObjectProperty(None)
 
     def __init__(self,**kwargs):
         super(BattleWord, self).__init__(**kwargs)
@@ -103,18 +96,34 @@ class BattleWord(ButtonBehavior, BoxLayout):
     def set_word(self, word):
         self.word = word
         if self.visible:
-            self.ids.Word.text = word
+            self.show_word(word)
         else:
-            self.ids.Word.text = "X" * len(word)
+            self.show_word("X" * len(word))
+
+    def show_word(self, word):
+        Logger.info("show_word: creating battle tiles for word: %s", word)
+
+        self.ids.Word.clear_widgets()
+        x = 10
+        for (index, w) in enumerate(word):
+            t = BattleTile(
+                    pos=(x, 0), 
+                    size=(40,40), 
+                )
+            t.set_battle_word(self)
+            t.set_selectable(False)
+            t.set_character(w)
+            self.ids.Word.add_widget(t)
+            x += 40
     
     def is_word(self, word):
         return self.word == word
 
     def buttonRelease(self):
-        self.boggleGame.showDefinition(self.word)
+        self.boggleApp.showDefinition(self.word)
 
 
-class BattleBoggleGame(BoxLayout):
+class BattleBoggleGame(FloatLayout):
     maxWordCount = NumericProperty(10)
     rows = NumericProperty(4)
     cols = NumericProperty(4)
@@ -145,7 +154,10 @@ class BattleBoggleGame(BoxLayout):
                         break
 
                 letters.append(l)
-                self.get_cell(r, c).set_character(l)
+                try:
+                    self.get_cell(r, c).set_character(l)
+                except:
+                    Logger.error("init_board: Unable to find cell at position: %d, %d", r, c)
 
                 row.append(l)
             self.grid.append(row)
@@ -171,17 +183,47 @@ class BattleBoggleGame(BoxLayout):
     def init_game(self, t):
         self.playerBattleWords = []
         self.opponentBattleWords = []
-        self.currentWord = self.ids.CurrentWord
+        self.currentWord = ''
+        self.currentWordDisplay = self.ids.CurrentWord
         self.info = self.ids.Info
 
         for i in range(1,self.maxWordCount+1):
             w = "PlayerWord{}".format(i)
-            self.playerBattleWords.append(self.ids[w])
+            try:
+                self.playerBattleWords.append(self.ids[w])
+            except:
+                Logger.error("init_game: Unable to find ID '%s'", w)
 
             w = "OpponentWord{}".format(i)
-            self.opponentBattleWords.append(self.ids[w])
+            try:
+                self.opponentBattleWords.append(self.ids[w])
+            except:
+                Logger.error("init_game: Unable to find ID '%s'", w)
 
         self.init_round()
+        self.showCurrentWord("FOO")
+        self.info.text = "This is a test\n"
+
+    def showCurrentWord(self, word):
+        Logger.info("showCurrentWord: word: %s", word)
+
+        self.currentWordDisplay.clear_widgets()
+
+        Logger.info("showCurrentWord: position of currentWordDisplay = %s",
+                str(self.currentWordDisplay.pos))
+
+        totalWidth = 110 * len(word) 
+        x = (WINDOW_WIDTH - totalWidth) / 2
+        y = self.currentWordDisplay.y + 10
+        for (index, w) in enumerate(word):
+            t = BattleTile(
+                    pos=(x, y), 
+                    size=(100,100), 
+                    size_hint=(None, None))
+            t.set_selectable(False)
+            t.set_character(w)
+            self.currentWordDisplay.add_widget(t)
+            x += 110
 
     def battleTileSelected(self, tile):
         if tile.state == 'normal':
@@ -195,16 +237,18 @@ class BattleBoggleGame(BoxLayout):
                 self.submitWord()
             else:
                 # Clicking on a letter earlier in the word removes up to that letter.
-                for j in range(i, len(self.letterSequence)-1):
+                for j in range(i, len(self.letterSequence)):
                     self.letterSequence[j].state = 'normal'
 
                 self.letterSequence = self.letterSequence[:i]
-                self.currentWord.text = self.currentWord.text[:i]
+                self.currentWord = self.currentWord[:i]
+                self.showCurrentWord(self.currentWord)
 
         elif tile.state == 'down':
 
-            self.currentWord.text += tile.character
             self.letterSequence.append(tile)
+            self.currentWord += tile.character
+            self.showCurrentWord(self.currentWord)
 
     def removeOpponentBattleWord(self, word):
         # Look through the opponentBattleWords structure and find the first word that 
@@ -241,7 +285,8 @@ class BattleBoggleGame(BoxLayout):
         for l in self.letterSequence:
             l.state = 'normal'
         self.letterSequence = []
-        self.currentWord.text = ''
+        self.currentWord = ''
+        self.showCurrentWord('')
 
     def add_player_word(self, word):
         # There are three cases:
@@ -249,16 +294,17 @@ class BattleBoggleGame(BoxLayout):
         # 1/  The word was already found by the player.
         # 2/  The word was previously found by the other player
         # 3/  The word is new and added to the ones tracked.
+        Logger.info("add_player_word: word: %s", word)
 
         if word in self.playerWords:
-            self.info.text = "Word '{}' already found".format(word)
+            self.info.text = "Word '{}' already found\n".format(word)
         elif word in self.opponentWords:
             self.removeOpponentBattleWord(word)
-            self.info.text = "Word '{}' removed from opponent".format(word)
+            self.info.text = "Word '{}' removed from opponent\n".format(word)
             self.playerWords.append(word)
             self.playerWordsFound += 1
         else:
-            self.info.text = "Word '{}' added".format(self.currentWord.text)
+            self.info.text = "Word '{}' added\n".format(self.currentWord)
             self.playerWords.append(word)
             self.playerBattleWords[self.playerBattleWordIndex].set_word(word)
             self.playerBattleWordIndex += 1
@@ -268,7 +314,7 @@ class BattleBoggleGame(BoxLayout):
             pass  # Doing nothing here, opponents can do this if they want
         elif word in self.playerWords:
             self.removePlayerBattleWord(word)
-            self.info.text = "Word '{}' found by opponent".format(word)
+            self.info.text = "Word '{}' found by opponent\n".format(word)
             self.opponentWords.append(word)
             self.opponentWordsFound += 1
         else:
@@ -279,6 +325,7 @@ class BattleBoggleGame(BoxLayout):
             
     def showDefinition(self, word):
         if not word == '':
+            Logger.info("showDefinition: word: %s, definition: %s", word, getDefinition(word))
             self.info.text = "{}: {}".format(word, getDefinition(word))
 
 
@@ -289,10 +336,10 @@ class BattleBoggleGame(BoxLayout):
             self.add_opponent_word(word)
 
         if self.playerBattleWordIndex == self.maxWordCount:
-            self.info.text = "You won!"
+            self.info.text = "You won!\n"
             self.init_round()
         elif self.opponentBattleWordIndex == self.maxWordCount:
-            self.info.text = "You lost!"
+            self.info.text = "You lost!\n"
             self.init_round()
 
 
@@ -300,22 +347,26 @@ class BattleBoggleGame(BoxLayout):
         Logger.info("on_touch_up: touch: %s", touch)
 
     def submitWord(self):
-        if isValidWord(self.currentWord.text):
-            self.add_player_word(self.currentWord.text)
+        if isValidWord(self.currentWord):
+            self.add_player_word(self.currentWord)
             self.clearCurrentWord()
         else:
-            self.info.text = "'{}' is not a valid word".format(self.currentWord.text)
+            self.info.text = "'{}' is not a valid word\n".format(self.currentWord)
             self.clearCurrentWord()
 
 
 class BattleBoggleApp(App):
-
     def build(self):
-        game = BattleBoggleGame()
-        Clock.schedule_once(game.init_game)
-        Clock.schedule_interval(game.update,1.0/2.0)
-        return game
+        self.game = BattleBoggleGame()
+        Clock.schedule_once(self.game.init_game)
+        Clock.schedule_interval(self.game.update,1.0/2.0)
+        return self.game
 
+    def battleTileSelected(self, tile):
+        self.game.battleTileSelected(tile)
+
+    def showDefinition(self, word):
+        self.game.showDefinition(word)
 
 if __name__=='__main__':
     BattleBoggleApp().run()

@@ -2,280 +2,255 @@
 
 BattleBoggleGame:
 
-<ClearArea>:
+<BackgroundColor@Widget>
+    canvas.before:
+        Color:
+            rgba: 1,1,1,1
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+<BoxLayoutWithBG@BoxLayout+BackgroundColor>:
 
 <BattleWord>:
     orientation: 'horizontal'
     on_release: self.buttonRelease()
+    size_hint_y: None
+    height: 55
+    boggleApp: app
     Label:
         text: str(root.wordNumber)
+        font_size: 18
+        color: 0,0,0,1
         halign: 'right'
-        size_hint_x: None
+        size_hint: (None, None)
         width: 55
+        height: 20
 
-    Label:
+    RelativeLayout: 
         id: Word
-        text: ''
+        size_hint_y: None
+        height: 50
 
 
 <BattleTile>:
-    text: "R1C1"
     size_hint: (None, None)
-    width: 100
-    height: 100
-    on_release: self.buttonRelease()
+    text: "R1C1"
+    min_state_time: 0.1
 
-    Label:
-        id: l
-        canvas:
-            Color:
-                rgba: 1,0,0,0.2
-            Rectangle:
-                size: self.size
-                pos: self.pos
-    
+<BattleArenaTile@BattleTile>:
+    height: 100
+    width: 100
+    boggleApp: app
 
 <BattleBoggleGame>:
-    orientation: 'vertical'
+    FloatLayout:
+        size_hint: (None, None)
+        width: root.width
+        height: root.height - 205 
+        pos: (0, root.height-self.height)
 
-    Label:
-        spacing: 20
-        size_hint_y: None
-        height: 50
-        text: 'Battle Boggle'
         canvas:
             Color: 
-                rgba: 1,0,1,0.5
-            Rectangle:
-                size: self.size
-                pos: self.pos
-      
-    BoxLayout: 
-        canvas:
-            Color:
-                rgba: 1,1,0,0.2
+                rgba: 1,1,1,1
             Rectangle:
                 size: self.size
                 pos: self.pos
 
         BoxLayout:
+            size_hint: (None, None)
+            width: self.parent.width / 3
+            height: self.parent.height
+            pos: (0, self.parent.y + 100)
+
             on_touch_up: root.clearCurrentWord()
             id: OpponentWords
             orientation: 'vertical'
             
             Label:
+                font_size: 18
+                color: 0,0,0,1
                 text: "Opponent Words"
+                size_hint_y: None
+                height: 35
 
             BattleWord:
                 id: OpponentWord1
                 wordNumber: 1
-                boggleGame: root
                 visible: True
             BattleWord:
                 id: OpponentWord2
-                boggleGame: root
                 wordNumber: 2
                 visible: False
             BattleWord:
                 id: OpponentWord3
-                boggleGame: root
                 wordNumber: 3
                 visible: False
             BattleWord:
                 id: OpponentWord4
-                boggleGame: root
                 wordNumber: 4
                 visible: False
             BattleWord:
                 id: OpponentWord5
-                boggleGame: root
                 wordNumber: 5
                 visible: False
             BattleWord:
                 id: OpponentWord6
-                boggleGame: root
                 wordNumber: 6
                 visible: False
             BattleWord:
                 id: OpponentWord7
-                boggleGame: root
                 wordNumber: 7
                 visible: False
             BattleWord:
                 id: OpponentWord8
-                boggleGame: root
                 wordNumber: 8
                 visible: False
             BattleWord:
                 id: OpponentWord9
-                boggleGame: root
                 wordNumber: 9
                 visible: False
             BattleWord:
                 id: OpponentWord10
-                boggleGame: root
                 wordNumber: 10
                 visible: False
 
-        ClearArea: 
+        GridLayout: 
             id: Grid
+
             rows: root.rows
             cols: root.cols
+
             spacing: (10,10)
+
             col_default_width: 100
             col_force_default: True
             row_default_height: 100
             row_force_default: True
-            size_hint: None, None
+
+            size_hint: (None, None)
             height: self.minimum_height
             width: self.minimum_width
-            pos_hint: { 'left': 1, 'center_y': 0.5}
-            on_touch_up: root.clearCurrentWord()
+            pos: (1 * self.parent.width / 3, self.parent.y + 100)
 
-            canvas:
-                Color: 
-                    rgba: 1,1,1,1
-                Rectangle:
-                    size: self.size
-                    pos: self.pos
-            
-            BattleTile:
+            BattleArenaTile:
                 id: R1C1
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R1C2
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R1C3
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R1C4
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R2C1
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R2C2
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R2C3
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R2C4
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R3C1
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R3C2
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R3C3
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R3C4
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R4C1
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R4C2
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R4C3
-                boggleGame: root
-            BattleTile:
+            BattleArenaTile:
                 id: R4C4
-                boggleGame: root
 
-        BoxLayout: 
+        BoxLayout:
             id: PlayerWords
+
+            size_hint: (None, None)
+            width: self.parent.width / 3
+            height: self.parent.height
+            pos: (2 * self.parent.width / 3, self.parent.y + 100)
+
             orientation: 'vertical'
             
             Label:
+                color: 0,0,0,1
+                font_size: 18
                 text: "Player Words"
+                size_hint_y: None
+                height: 35
 
             BattleWord:
                 id: PlayerWord1
-                boggleGame: root
                 wordNumber: 1
             BattleWord:
                 id: PlayerWord2
-                boggleGame: root
                 wordNumber: 2
             BattleWord:
                 id: PlayerWord3
-                boggleGame: root
                 wordNumber: 3
             BattleWord:
                 id: PlayerWord4
-                boggleGame: root
                 wordNumber: 4
             BattleWord:
                 id: PlayerWord5
-                boggleGame: root
                 wordNumber: 5
             BattleWord:
                 id: PlayerWord6
-                boggleGame: root
                 wordNumber: 6
             BattleWord:
                 id: PlayerWord7
-                boggleGame: root
                 wordNumber: 7
             BattleWord:
                 id: PlayerWord8
-                boggleGame: root
                 wordNumber: 8
             BattleWord:
                 id: PlayerWord9
-                boggleGame: root
                 wordNumber: 9
             BattleWord:
                 id: PlayerWord10
-                boggleGame: root
                 wordNumber: 10
-        
 
-    BoxLayout: 
-        size_hint_y: None
-        height: 40
-        orientation: 'horizontal'
-        
-        Button:
-            size_hint_y: None
-            height: 40
-            text: "Submit"
-            on_release: root.submitWord()
-        
-        Button:
-            size_hint_y: None
-            height: 40
-            text: "Clear"
-            on_release: root.clearCurrentWord()
+    FloatLayout: 
+        id: CurrentWord
 
+        size_hint: (None,None)
+        width: root.width
+        height: 120
+        pos: (0,85)
+        canvas:
+            Color: 
+                rgba: 1,1,1,1
+            Rectangle:
+                size: self.size
+                pos: self.pos
+        
     Label:
+        size_hint: (None,None)
+        width: root.width
+        pos: (0, 0)
+        height: 85
+        spacing: (10,10)
+        color: 0,0,0,1
+
         id: Info
         size_hint_y: None
-        height: 100
+        text_size: root.width-10, 85
+        font_size: 22
+        halign: 'center'
         text: ''
-        canvas:
+        canvas.before:
             Color: 
-                rgba: 1,0,1,0.1
+                rgba: 1,1,1,1
             Rectangle:
                 size: self.size
                 pos: self.pos
-
-    Label:
-        id: CurrentWord
-        size_hint_y: None
-        height: 100
-        text: ''
-        canvas:
             Color: 
-                rgba: 0,0,1,0.2
-            Rectangle:
-                size: self.size
-                pos: self.pos
-            
+                rgba: 1,0,1,0.5
+            Line:
+                points: ((self.x + self.spacing[0], self.y + self.spacing[1]),    (self.x+self.width - self.spacing[0], self.y + self.spacing[1]),      (self.x+self.width - self.spacing[0], self.y + self.height - self.spacing[1]),      (self.x + self.spacing[0], self.y+self.height - self.spacing[1]),      (self.x + self.spacing[0], self.y + self.spacing[1] ))
+                
 
