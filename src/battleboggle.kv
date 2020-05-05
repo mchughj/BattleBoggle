@@ -1,7 +1,5 @@
 #:kivy 1.0.9
 
-BattleBoggleGame:
-
 <BackgroundColor@Widget>
     canvas.before:
         Color:
@@ -43,7 +41,17 @@ BattleBoggleGame:
     width: 100
     boggleApp: app
 
+<MenuScreen>:
+    BoxLayout:
+        Button:
+            text: 'Play'
+            on_press: app.startGame()
+        Button:
+            text: 'Quit'
+            on_press: app.get_running_app().stop()
+
 <BattleBoggleGame>:
+    boggleApp: app
     FloatLayout:
         size_hint: (None, None)
         width: root.width

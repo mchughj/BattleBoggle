@@ -6,21 +6,22 @@
 import kivy
 
 from kivy.app import App
-from kivy.properties import NumericProperty, BooleanProperty, ReferenceListProperty, ObjectProperty
-from kivy.vector import Vector
 from kivy.clock import Clock
-from kivy.uix.boxlayout import BoxLayout 
-from kivy.uix.gridlayout import GridLayout 
-from kivy.uix.floatlayout import FloatLayout 
-from kivy.uix.widget import Widget
-from kivy.uix.togglebutton import ToggleButton
+from kivy.graphics import Color
+from kivy.logger import Logger
+from kivy.properties import NumericProperty, BooleanProperty, ReferenceListProperty, ObjectProperty
 from kivy.uix.behaviors.button import ButtonBehavior
 from kivy.uix.behaviors.togglebutton import ToggleButtonBehavior
-from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout 
+from kivy.uix.floatlayout import FloatLayout 
+from kivy.uix.gridlayout import GridLayout 
 from kivy.uix.image import Image
-from kivy.graphics import Color
-
-from kivy.logger import Logger
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
+from kivy.vector import Vector
 
 from random import choice
 
@@ -74,7 +75,11 @@ class BattleTile(ToggleButtonBehavior, Image):
 
     def _do_release(self, *args):
         if not self.selectable:
-            self.battle_word.buttonRelease()
+            # If it is not selectable then either it is a tile within a larger battle word
+            # or it is in the grid and the game mode does not allow for selection at this time.
+            if self.battle_word: 
+                self.battle_word.buttonRelease()
+
             return 
 
         super(BattleTile, self)._do_release(args)
@@ -100,6 +105,10 @@ class BattleWord(ButtonBehavior, BoxLayout):
         else:
             self.show_word("X" * len(word))
 
+    def show_current_word(self):
+        self.visible = True
+        self.show_word(self.word)
+
     def show_word(self, word):
         Logger.info("show_word: creating battle tiles for word: %s", word)
 
@@ -120,13 +129,15 @@ class BattleWord(ButtonBehavior, BoxLayout):
         return self.word == word
 
     def buttonRelease(self):
-        self.boggleApp.showDefinition(self.word)
+        if self.visible:
+            self.boggleApp.showDefinition(self.word)
 
 
-class BattleBoggleGame(FloatLayout):
+class BattleBoggleGame(Screen, FloatLayout):
     maxWordCount = NumericProperty(10)
     rows = NumericProperty(4)
     cols = NumericProperty(4)
+    boggleApp = ObjectProperty(None)
 
     def get_cell(self, r, c):
         cellString = "R{}C{}".format(r, c)
@@ -170,14 +181,24 @@ class BattleBoggleGame(FloatLayout):
         self.playerBattleWordIndex = 0
         self.opponentBattleWordIndex = 0
         self.letterSequence = []
+        self.roundComplete = False
 
         for x in self.playerBattleWords:
             x.set_word("")
         for y in self.opponentBattleWords:
             y.set_word("")
+            y.visible = False
+
+        for r in range(1,self.rows+1):
+            for c in range(1,self.cols+1):
+                self.get_cell(r, c).set_selectable(True)
 
         self.init_board()
         self.init_ai()
+
+        self.remove_widget(self.newRoundButton)
+        self.remove_widget(self.mainMenuButton)
+        self.info.text = ''
 
 
     def init_game(self, t):
@@ -186,6 +207,7 @@ class BattleBoggleGame(FloatLayout):
         self.currentWord = ''
         self.currentWordDisplay = self.ids.CurrentWord
         self.info = self.ids.Info
+        self.lives = 2
 
         for i in range(1,self.maxWordCount+1):
             w = "PlayerWord{}".format(i)
@@ -200,9 +222,21 @@ class BattleBoggleGame(FloatLayout):
             except:
                 Logger.error("init_game: Unable to find ID '%s'", w)
 
+        self.newRoundButton = Button(text='Next Round', on_press=lambda a: self.init_round())
+        self.newRoundButton.size_hint = (None, None)
+        self.newRoundButton.width = 300
+        self.newRoundButton.height = 50
+        self.newRoundButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
+
+        self.mainMenuButton = Button(text='Return to main menu', on_press=lambda a:
+                self.boggleApp.showMainMenu())
+        self.mainMenuButton.size_hint = (None, None)
+        self.mainMenuButton.width = 300
+        self.mainMenuButton.height = 50
+        self.mainMenuButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
+
         self.init_round()
-        self.showCurrentWord("FOO")
-        self.info.text = "This is a test\n"
+
 
     def showCurrentWord(self, word):
         Logger.info("showCurrentWord: word: %s", word)
@@ -330,17 +364,40 @@ class BattleBoggleGame(FloatLayout):
 
 
     def update(self, dt):
-        self.ai.update(dt)
-        word = self.ai.nextWord()
-        if word:
-            self.add_opponent_word(word)
+        if not self.roundComplete:
+            self.ai.update(dt)
+            word = self.ai.nextWord()
+            if word:
+                self.add_opponent_word(word)
 
-        if self.playerBattleWordIndex == self.maxWordCount:
-            self.info.text = "You won!\n"
-            self.init_round()
-        elif self.opponentBattleWordIndex == self.maxWordCount:
-            self.info.text = "You lost!\n"
-            self.init_round()
+            if self.playerBattleWordIndex == self.maxWordCount:
+                self.info.text = "You won!\n"
+                self.roundComplete = True
+                self.show_end_round()
+            elif self.opponentBattleWordIndex == self.maxWordCount:
+                self.info.text = "You lost!\n"
+                self.roundComplete = True
+                self.lives -= 1
+                self.show_end_round()
+
+
+    def show_end_round(self):
+        # Show all of the opponent words
+        for y in self.opponentBattleWords:
+            y.show_current_word()
+
+        # Disable all of the ability to create new words.
+        # Also remove the current word.
+        self.clearCurrentWord()
+
+        for r in range(1,self.rows+1):
+            for c in range(1,self.cols+1):
+                self.get_cell(r, c).set_selectable(False)
+
+        if self.lives > 0:
+            self.add_widget(self.newRoundButton)
+        else:
+            self.add_widget(self.mainMenuButton)
 
 
     def on_touch_up(self, touch):
@@ -354,13 +411,33 @@ class BattleBoggleGame(FloatLayout):
             self.info.text = "'{}' is not a valid word\n".format(self.currentWord)
             self.clearCurrentWord()
 
+class MenuScreen(Screen):
+    pass
+
 
 class BattleBoggleApp(App):
+    def __init__(self, **kwargs):
+        super(BattleBoggleApp, self).__init__(**kwargs)
+        self.updateEvent = None
+    
     def build(self):
-        self.game = BattleBoggleGame()
+        self.game = BattleBoggleGame(name='game')
+        self.sm = ScreenManager()
+        self.sm.add_widget(MenuScreen(name='menu'))
+        self.sm.add_widget(self.game)
+
+        return self.sm
+
+    def startGame(self):
+        self.sm.current = 'game'
         Clock.schedule_once(self.game.init_game)
-        Clock.schedule_interval(self.game.update,1.0/2.0)
-        return self.game
+        self.updateEvent = Clock.schedule_interval(self.game.update,1.0/2.0)
+
+    def showMainMenu(self):
+        self.sm.current = 'menu'
+        if self.updateEvent:
+            Clock.unschedule(self.updateEvent)
+            self.updateEvent = None
 
     def battleTileSelected(self, tile):
         self.game.battleTileSelected(tile)
