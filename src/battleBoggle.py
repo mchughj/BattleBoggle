@@ -71,6 +71,7 @@ class BattleTile(ToggleButtonBehavior, Image):
     def set_character(self, c):
         Logger.info("set_character: c: %s", c)
         self.character = c
+        self.state = 'normal'
         self.setTileImage('normal')
 
     def _do_release(self, *args):
@@ -137,7 +138,25 @@ class BattleBoggleGame(Screen, FloatLayout):
     maxWordCount = NumericProperty(10)
     rows = NumericProperty(4)
     cols = NumericProperty(4)
+    playerScore = NumericProperty(0)
+    opponentScore = NumericProperty(0)
     boggleApp = ObjectProperty(None)
+
+    def __init__(self, **kwargs):
+        super(BattleBoggleGame, self).__init__(**kwargs)
+
+        self.newRoundButton = Button(text='Next Round', on_press=lambda a: self.init_round())
+        self.newRoundButton.size_hint = (None, None)
+        self.newRoundButton.width = 300
+        self.newRoundButton.height = 50
+        self.newRoundButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
+
+        self.mainMenuButton = Button(text='Return to main menu', on_press=lambda a:
+                self.boggleApp.showMainMenu())
+        self.mainMenuButton.size_hint = (None, None)
+        self.mainMenuButton.width = 300
+        self.mainMenuButton.height = 50
+        self.mainMenuButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
 
     def get_cell(self, r, c):
         cellString = "R{}C{}".format(r, c)
@@ -165,10 +184,7 @@ class BattleBoggleGame(Screen, FloatLayout):
                         break
 
                 letters.append(l)
-                try:
-                    self.get_cell(r, c).set_character(l)
-                except:
-                    Logger.error("init_board: Unable to find cell at position: %d, %d", r, c)
+                self.get_cell(r, c).set_character(l)
 
                 row.append(l)
             self.grid.append(row)
@@ -208,6 +224,8 @@ class BattleBoggleGame(Screen, FloatLayout):
         self.currentWordDisplay = self.ids.CurrentWord
         self.info = self.ids.Info
         self.lives = 2
+        self.playerScore = 0
+        self.opponentScore = 0
 
         for i in range(1,self.maxWordCount+1):
             w = "PlayerWord{}".format(i)
@@ -221,19 +239,6 @@ class BattleBoggleGame(Screen, FloatLayout):
                 self.opponentBattleWords.append(self.ids[w])
             except:
                 Logger.error("init_game: Unable to find ID '%s'", w)
-
-        self.newRoundButton = Button(text='Next Round', on_press=lambda a: self.init_round())
-        self.newRoundButton.size_hint = (None, None)
-        self.newRoundButton.width = 300
-        self.newRoundButton.height = 50
-        self.newRoundButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
-
-        self.mainMenuButton = Button(text='Return to main menu', on_press=lambda a:
-                self.boggleApp.showMainMenu())
-        self.mainMenuButton.size_hint = (None, None)
-        self.mainMenuButton.width = 300
-        self.mainMenuButton.height = 50
-        self.mainMenuButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
 
         self.init_round()
 
@@ -261,12 +266,12 @@ class BattleBoggleGame(Screen, FloatLayout):
 
     def battleTileSelected(self, tile):
         if tile.state == 'normal':
+            Logger.info(
+                    "battleTileSelected: tile info; state: %s, character: %s, letterSequence: %s",
+                    tile.state, tile.character, self.currentWord)
             i = self.letterSequence.index(tile)
             # Two cases.  Either the user clicked on the same letter and is attempting
             # to submit the word or they have clicked on another letter earlier in the word.
-            Logger.info(
-                    "battleTileSelected - onEnter: tile.state: %s, i: %d, len(letterSequence): %d", 
-                    tile.state, i, len(self.letterSequence))
             if i == len(self.letterSequence)-1:
                 self.submitWord()
             else:
@@ -373,15 +378,27 @@ class BattleBoggleGame(Screen, FloatLayout):
             if self.playerBattleWordIndex == self.maxWordCount:
                 self.info.text = "You won!\n"
                 self.roundComplete = True
-                self.show_end_round()
+                self.show_end_round(True)
             elif self.opponentBattleWordIndex == self.maxWordCount:
                 self.info.text = "You lost!\n"
                 self.roundComplete = True
                 self.lives -= 1
-                self.show_end_round()
+                self.show_end_round(False)
 
 
-    def show_end_round(self):
+    def score_words(self, words, multiplier):
+        points = 0
+        for x in words:
+            word = x.get_word()
+            points += len(word) * 10
+
+        if multiplier:
+            points *= 1.5
+
+        return int(points)
+
+
+    def show_end_round(self, didPlayerWin):
         # Show all of the opponent words
         for y in self.opponentBattleWords:
             y.show_current_word()
@@ -393,6 +410,9 @@ class BattleBoggleGame(Screen, FloatLayout):
         for r in range(1,self.rows+1):
             for c in range(1,self.cols+1):
                 self.get_cell(r, c).set_selectable(False)
+
+        self.playerScore += self.score_words(self.playerBattleWords, didPlayerWin)
+        self.opponentScore += self.score_words(self.opponentBattleWords, not didPlayerWin)
 
         if self.lives > 0:
             self.add_widget(self.newRoundButton)
