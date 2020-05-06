@@ -8,6 +8,7 @@ import kivy
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import Color
+from kivy.graphics import Rectangle
 from kivy.logger import Logger
 from kivy.properties import NumericProperty, BooleanProperty, ReferenceListProperty, ObjectProperty
 from kivy.uix.behaviors.button import ButtonBehavior
@@ -37,6 +38,9 @@ WINDOW_HEIGHT = 900
 Config.set('graphics', 'width', WINDOW_WIDTH)
 Config.set('graphics', 'height', WINDOW_HEIGHT)
 Config.set("kivy", "log_level", "info")
+
+class BattleWordScore(Label):
+    pass
 
 class BattleTile(ToggleButtonBehavior, Image):
     boggleApp = ObjectProperty(None)
@@ -109,6 +113,19 @@ class BattleWord(ButtonBehavior, BoxLayout):
     def show_current_word(self):
         self.visible = True
         self.show_word(self.word)
+
+    def show_score(self, value, x):
+        score = BattleWordScore(pos = (x,0))
+        score.text = str(value)
+
+        with score.canvas:
+            Color(1,0,0,0.5)
+            Rectangle(pos = (x,0),
+                    size = (40,40))
+
+        Logger.info("show_score: adding label with value: %d", value)
+
+        self.ids.Word.add_widget(score)
 
     def show_word(self, word):
         Logger.info("show_word: creating battle tiles for word: %s", word)
@@ -388,9 +405,16 @@ class BattleBoggleGame(Screen, FloatLayout):
 
     def score_words(self, words, multiplier):
         points = 0
+
+        # Align all of score widgets that are shown in a single vertical column.
+        maxLength = max([len(x.get_word()) for x in words])
+        posX = 10 + 40 * maxLength + 30
+
         for x in words:
             word = x.get_word()
-            points += len(word) * 10
+            value = len(word) * 10
+            x.show_score(value, posX)
+            points += value
 
         if multiplier:
             points *= 1.5
@@ -411,6 +435,9 @@ class BattleBoggleGame(Screen, FloatLayout):
             for c in range(1,self.cols+1):
                 self.get_cell(r, c).set_selectable(False)
 
+        # Jason :: TODO:  Show the score for each word as a little glyph that animates
+        # Jason :: TODO:  The animated widget could be a start or something that animates.  See https://kivy.org/doc/stable/guide/widgets.html#adding-widget-background
+        # Jason :: TODO:  Show the score counting up via something like https://stackoverflow.com/questions/44955913/kivy-animation-class-to-animate-kivy-images
         self.playerScore += self.score_words(self.playerBattleWords, didPlayerWin)
         self.opponentScore += self.score_words(self.opponentBattleWords, not didPlayerWin)
 

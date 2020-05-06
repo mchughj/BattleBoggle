@@ -30,6 +30,14 @@
         size_hint_y: None
         height: 50
 
+<BattleWordScore>:
+    size_hint: (None, None)
+    width: 40
+    height: 40
+    font_size: 18
+    color: 0,0,0,1
+    halign: 'right'
+
 
 <BattleTile>:
     size_hint: (None, None)
@@ -321,6 +329,7 @@
             Color: 
                 rgba: 1,0,1,0.5
             Line:
-                points: ((self.x + self.spacing[0], self.y + self.spacing[1]),    (self.x+self.width - self.spacing[0], self.y + self.spacing[1]),      (self.x+self.width - self.spacing[0], self.y + self.height - self.spacing[1]),      (self.x + self.spacing[0], self.y+self.height - self.spacing[1]),      (self.x + self.spacing[0], self.y + self.spacing[1] ))
+                width: 1.0
+                rectangle: (self.x + self.spacing[0], self.y + self.spacing[1], self.width - (2*self.spacing[0]), self.height - (2*self.spacing[1]))
                 
 
