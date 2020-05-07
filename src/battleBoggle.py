@@ -5,6 +5,7 @@
 
 import kivy
 
+from kivy.animation import Animation
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.graphics import Color
@@ -40,7 +41,12 @@ Config.set('graphics', 'height', WINDOW_HEIGHT)
 Config.set("kivy", "log_level", "info")
 
 class BattleWordScore(Label):
-    pass
+
+    def animate_score(self, delay_ms):
+        a = Animation(opacity=0, font_size=28, duration=0) + Animation(opacity=0, duration= (delay_ms / 1000) ) \
+                + Animation(opacity=1, duration=1) + Animation(font_size=18, duration=2.5, t='in_bounce')
+        a.start(self)
+
 
 class BattleTile(ToggleButtonBehavior, Image):
     boggleApp = ObjectProperty(None)
@@ -114,9 +120,11 @@ class BattleWord(ButtonBehavior, BoxLayout):
         self.visible = True
         self.show_word(self.word)
 
-    def show_score(self, value, x):
+    def show_score(self, value, x, delay_ms):
         score = BattleWordScore(pos = (x,0))
         score.text = str(value)
+
+        score.animate_score(delay_ms)
 
         with score.canvas:
             Color(1,0,0,0.5)
@@ -162,18 +170,33 @@ class BattleBoggleGame(Screen, FloatLayout):
     def __init__(self, **kwargs):
         super(BattleBoggleGame, self).__init__(**kwargs)
 
-        self.newRoundButton = Button(text='Next Round', on_press=lambda a: self.init_round())
+        self.newRoundButton = Button(text='Next Round', on_release=lambda a: self.init_round())
         self.newRoundButton.size_hint = (None, None)
         self.newRoundButton.width = 300
-        self.newRoundButton.height = 50
-        self.newRoundButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
+        self.newRoundButton.height = 100
+        self.newRoundButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,100)
 
-        self.mainMenuButton = Button(text='Return to main menu', on_press=lambda a:
+        self.mainMenuButton = Button(text='Return to main menu', on_release=lambda a:
                 self.boggleApp.showMainMenu())
         self.mainMenuButton.size_hint = (None, None)
         self.mainMenuButton.width = 300
-        self.mainMenuButton.height = 50
-        self.mainMenuButton.pos = ((WINDOW_WIDTH - self.newRoundButton.width) / 2,200)
+        self.mainMenuButton.height = 100
+        self.mainMenuButton.pos = ((WINDOW_WIDTH - self.mainMenuButton.width) / 2,100)
+
+        self.playerRoundScore = BattleWordScore(pos = (1400,225))
+        self.playerRoundScore.text = ''
+        with self.playerRoundScore.canvas:
+            Color(0,1,1,0.5)
+            Rectangle(pos = (self.playerRoundScore.x, self.playerRoundScore.y),
+                    size = (self.playerRoundScore.width, self.playerRoundScore.height))
+
+        self.opponentRoundScore = BattleWordScore(pos = (250,225))
+        self.opponentRoundScore.text = ''
+        with self.opponentRoundScore.canvas:
+            Color(0,1,1,0.5)
+            Rectangle(pos = (self.opponentRoundScore.x, self.opponentRoundScore.y),
+                    size = (self.opponentRoundScore.width, self.opponentRoundScore.height))
+
 
     def get_cell(self, r, c):
         cellString = "R{}C{}".format(r, c)
@@ -231,6 +254,8 @@ class BattleBoggleGame(Screen, FloatLayout):
 
         self.remove_widget(self.newRoundButton)
         self.remove_widget(self.mainMenuButton)
+        self.remove_widget(self.playerRoundScore)
+        self.remove_widget(self.opponentRoundScore)
         self.info.text = ''
 
 
@@ -335,6 +360,7 @@ class BattleBoggleGame(Screen, FloatLayout):
                 self.playerBattleWords[self.playerBattleWordIndex-1].set_word("")
                 self.playerBattleWordIndex -= 1
                 return True
+            x += 1
         return False
 
     def clearCurrentWord(self):
@@ -403,21 +429,27 @@ class BattleBoggleGame(Screen, FloatLayout):
                 self.show_end_round(False)
 
 
-    def score_words(self, words, multiplier):
+    def score_words(self, words, multiplier, roundScoreDisplay):
         points = 0
 
         # Align all of score widgets that are shown in a single vertical column.
         maxLength = max([len(x.get_word()) for x in words])
         posX = 10 + 40 * maxLength + 30
 
-        for x in words:
+        for i, x in enumerate(words):
             word = x.get_word()
             value = len(word) * 10
-            x.show_score(value, posX)
+            if value > 0:
+                x.show_score(value, posX, i * 100)
             points += value
+
 
         if multiplier:
             points *= 1.5
+
+        roundScoreDisplay.text = str(points)
+        roundScoreDisplay.animate_score(len(words) * 100 + 50)
+        self.add_widget(roundScoreDisplay)
 
         return int(points)
 
@@ -430,7 +462,6 @@ class BattleBoggleGame(Screen, FloatLayout):
         # Disable all of the ability to create new words.
         # Also remove the current word.
         self.clearCurrentWord()
-
         for r in range(1,self.rows+1):
             for c in range(1,self.cols+1):
                 self.get_cell(r, c).set_selectable(False)
@@ -438,8 +469,12 @@ class BattleBoggleGame(Screen, FloatLayout):
         # Jason :: TODO:  Show the score for each word as a little glyph that animates
         # Jason :: TODO:  The animated widget could be a start or something that animates.  See https://kivy.org/doc/stable/guide/widgets.html#adding-widget-background
         # Jason :: TODO:  Show the score counting up via something like https://stackoverflow.com/questions/44955913/kivy-animation-class-to-animate-kivy-images
-        self.playerScore += self.score_words(self.playerBattleWords, didPlayerWin)
-        self.opponentScore += self.score_words(self.opponentBattleWords, not didPlayerWin)
+        
+        playerRoundScore = self.score_words(self.playerBattleWords, didPlayerWin, self.playerRoundScore)
+        self.playerScore += playerRoundScore
+
+        opponentRoundScore = self.score_words(self.opponentBattleWords, not didPlayerWin, self.opponentRoundScore)
+        self.opponentScore += opponentRoundScore 
 
         if self.lives > 0:
             self.add_widget(self.newRoundButton)
