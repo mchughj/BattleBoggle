@@ -38,6 +38,14 @@
     color: 0,0,0,1
     halign: 'right'
     opacity: 0
+    blink_size: 0
+    animated_color: (1,1,1,1)
+    canvas.before:
+        Color:
+            rgba: self.animated_color
+        Rectangle:
+            size: self.blink_size, self.blink_size
+            pos: self.pos[0] + self.size[0] / 2.0 - self.blink_size/2, self.pos[1] + self.size[1] / 2.0 - self.blink_size /2.0
 
 
 <BattleTile>:

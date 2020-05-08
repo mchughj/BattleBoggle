@@ -44,7 +44,16 @@ class BattleWordScore(Label):
 
     def animate_score(self, delay_ms):
         a = Animation(opacity=0, font_size=28, duration=0) + Animation(opacity=0, duration= (delay_ms / 1000) ) \
-                + Animation(opacity=1, duration=1) + Animation(font_size=18, duration=2.5, t='in_bounce')
+                + Animation(opacity=1, duration=1) + Animation(animated_color=(1,0,0,0), blink_size=90)
+        a.bind(on_complete=self.reset)
+        a.start(self)
+
+    def reset(self, *args):
+        self.animated_color = (1,1,1,1)
+        self.blink_size = 0
+
+        a = Animation(animated_color=(1,0,0,0), blink_size=90)
+        a.bind(on_complete=self.reset)
         a.start(self)
 
 
@@ -183,19 +192,15 @@ class BattleBoggleGame(Screen, FloatLayout):
         self.mainMenuButton.height = 100
         self.mainMenuButton.pos = ((WINDOW_WIDTH - self.mainMenuButton.width) / 2,100)
 
-        self.playerRoundScore = BattleWordScore(pos = (1400,225))
+        self.playerRoundScore = BattleWordScore(pos = (0,200))
+        self.playerRoundScore.width = 70
+        self.playerRoundScore.height = 70
         self.playerRoundScore.text = ''
-        with self.playerRoundScore.canvas:
-            Color(0,1,1,0.5)
-            Rectangle(pos = (self.playerRoundScore.x, self.playerRoundScore.y),
-                    size = (self.playerRoundScore.width, self.playerRoundScore.height))
 
-        self.opponentRoundScore = BattleWordScore(pos = (250,225))
+        self.opponentRoundScore = BattleWordScore(pos = (0,200))
         self.opponentRoundScore.text = ''
-        with self.opponentRoundScore.canvas:
-            Color(0,1,1,0.5)
-            Rectangle(pos = (self.opponentRoundScore.x, self.opponentRoundScore.y),
-                    size = (self.opponentRoundScore.width, self.opponentRoundScore.height))
+        self.opponentRoundScore.width = 100
+        self.opponentRoundScore.height = 100
 
 
     def get_cell(self, r, c):
@@ -429,26 +434,28 @@ class BattleBoggleGame(Screen, FloatLayout):
                 self.show_end_round(False)
 
 
-    def score_words(self, words, multiplier, roundScoreDisplay):
+    def score_words(self, words, multiplier, roundScoreDisplay, offsetX):
         points = 0
 
         # Align all of score widgets that are shown in a single vertical column.
         maxLength = max([len(x.get_word()) for x in words])
-        posX = 10 + 40 * maxLength + 30
+        relativePosX = 10 + 40 * maxLength + 30
 
         for i, x in enumerate(words):
             word = x.get_word()
+
             value = len(word) * 10
             if value > 0:
-                x.show_score(value, posX, i * 100)
+                x.show_score(value, relativePosX, i * 100)
             points += value
 
 
         if multiplier:
             points *= 1.5
 
-        roundScoreDisplay.text = str(points)
+        roundScoreDisplay.text = str(int(points))
         roundScoreDisplay.animate_score(len(words) * 100 + 50)
+        roundScoreDisplay.pos[0] = relativePosX + offsetX + 75 - roundScoreDisplay.size[0]/2.0
         self.add_widget(roundScoreDisplay)
 
         return int(points)
@@ -470,10 +477,10 @@ class BattleBoggleGame(Screen, FloatLayout):
         # Jason :: TODO:  The animated widget could be a start or something that animates.  See https://kivy.org/doc/stable/guide/widgets.html#adding-widget-background
         # Jason :: TODO:  Show the score counting up via something like https://stackoverflow.com/questions/44955913/kivy-animation-class-to-animate-kivy-images
         
-        playerRoundScore = self.score_words(self.playerBattleWords, didPlayerWin, self.playerRoundScore)
+        playerRoundScore = self.score_words(self.playerBattleWords, didPlayerWin, self.playerRoundScore, self.ids.PlayerWords.pos[0] )
         self.playerScore += playerRoundScore
 
-        opponentRoundScore = self.score_words(self.opponentBattleWords, not didPlayerWin, self.opponentRoundScore)
+        opponentRoundScore = self.score_words(self.opponentBattleWords, not didPlayerWin, self.opponentRoundScore, self.ids.OpponentWords.pos[0])
         self.opponentScore += opponentRoundScore 
 
         if self.lives > 0:
