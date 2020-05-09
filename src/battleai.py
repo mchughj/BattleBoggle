@@ -1,13 +1,15 @@
 
 from random import randint
 from wordsanddefinitions import isValidWord
+from kivy.logger import Logger
 
 class TrivialAI(object):
 
     def __init__(self):
         self.words = list()
         self.accumulatedTime = 0
-        self.nextWordFound = 0.01
+        self.minTime = 1
+        self.maxTime = 10
 
     def set_grid(self, grid, r, c):
         self.grid = grid
@@ -16,6 +18,13 @@ class TrivialAI(object):
 
     def set_longest_word(self, l):
         self.longestWord = l
+
+    def set_word_time(self, times):
+        self.minTime = int(times[0])
+        self.maxTime = int(times[1])
+
+        Logger.info("set_word_time: minTime: %s, maxTime: %s", self.minTime, self.maxTime)
+        self.nextWordFound = randint(self.minTime, self.maxTime)
 
     def _build_words(self, x, y, currentWord, used):
         if x < 0 or x >= self.colCount or y < 0 or y >= self.rowCount:
@@ -60,6 +69,7 @@ class TrivialAI(object):
                     .format(self.accumulatedTime, len(self.words)))
 
             self.accumulatedTime = 0
+            self.nextWordFound = randint(self.minTime, self.maxTime)
             return self.words[ randint(0,len(self.words)-1) ]
 
         return None

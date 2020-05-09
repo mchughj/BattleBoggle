@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 # Main program for the battle boggle game
@@ -30,8 +29,12 @@ from random import choice
 from randomletter import randomLetter
 from wordsanddefinitions import isValidWord, getDefinition
 from battleai import TrivialAI
+import rules
+import stats
 
 from kivy.config import Config
+
+import configparser
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
@@ -202,6 +205,11 @@ class BattleBoggleGame(Screen, FloatLayout):
         self.opponentRoundScore.width = 100
         self.opponentRoundScore.height = 100
 
+    def set_stats(self, stats):
+        self.stats = stats
+
+    def set_game_rules(self, gameRules):
+        self.gameRules = gameRules
 
     def get_cell(self, r, c):
         cellString = "R{}C{}".format(r, c)
@@ -210,23 +218,19 @@ class BattleBoggleGame(Screen, FloatLayout):
     def init_ai(self):
         self.ai = TrivialAI()
         self.ai.set_grid(self.grid, self.rows, self.cols)
-        self.ai.set_longest_word(5)
+        self.ai.set_longest_word(rules.getMaxWordLength(self.smarts))
+        self.ai.set_word_time(rules.getTimeRangeForNextWordDiscovery(self.speed))
         self.ai.build()
 
     def init_board(self):
-        
         letters = []
         self.grid = []
         for r in range(1,self.rows+1):
             row = []
             for c in range(1,self.cols+1):
-
-                # Chose a new letter as long as we don't have too many of that letter.
-                while True:
-                    l = randomLetter()
-                    count = len(list(filter(lambda x: x == l, letters)))
-                    if count < 2:
-                        break
+                l = None
+                while l is None:
+                    l = rules.confirmOrSuggestAlternateLetter(randomLetter(), letters)
 
                 letters.append(l)
                 self.get_cell(r, c).set_character(l)
@@ -273,6 +277,9 @@ class BattleBoggleGame(Screen, FloatLayout):
         self.lives = 2
         self.playerScore = 0
         self.opponentScore = 0
+
+        self.smarts = rules.getSmarts(self.gameRules)
+        self.speed = rules.getSpeed(self.gameRules)
 
         for i in range(1,self.maxWordCount+1):
             w = "PlayerWord{}".format(i)
@@ -426,6 +433,8 @@ class BattleBoggleGame(Screen, FloatLayout):
             if self.playerBattleWordIndex == self.maxWordCount:
                 self.info.text = "You won!\n"
                 self.roundComplete = True
+                self.smarts += 1
+                self.speed += 1
                 self.show_end_round(True)
             elif self.opponentBattleWordIndex == self.maxWordCount:
                 self.info.text = "You lost!\n"
@@ -444,11 +453,11 @@ class BattleBoggleGame(Screen, FloatLayout):
         for i, x in enumerate(words):
             word = x.get_word()
 
-            value = len(word) * 10
+            # Calculate value of the word
+            value = rules.getValueOfWord(word)
             if value > 0:
                 x.show_score(value, relativePosX, i * 100)
             points += value
-
 
         if multiplier:
             points *= 1.5
@@ -472,6 +481,9 @@ class BattleBoggleGame(Screen, FloatLayout):
         for r in range(1,self.rows+1):
             for c in range(1,self.cols+1):
                 self.get_cell(r, c).set_selectable(False)
+
+        # Update the stats
+        stats.recordStats(self.stats, [x.get_word() for x in self.playerBattleWords])
 
         # Jason :: TODO:  Show the score for each word as a little glyph that animates
         # Jason :: TODO:  The animated widget could be a start or something that animates.  See https://kivy.org/doc/stable/guide/widgets.html#adding-widget-background
@@ -510,7 +522,16 @@ class BattleBoggleApp(App):
         self.updateEvent = None
     
     def build(self):
+        self.config = configparser.ConfigParser()
+        if not self.config.read('config.ini'):
+            Logger.info("build: config.ini file not found - using defaults")
+            self.config['Records'] = stats.getDefaultEmptyStats()
+            self.config['GameMode'] = rules.getDefaultGameRules()
+
         self.game = BattleBoggleGame(name='game')
+        self.game.set_stats(self.config['Records'])
+        self.game.set_game_rules(self.config['GameMode'])
+
         self.sm = ScreenManager()
         self.sm.add_widget(MenuScreen(name='menu'))
         self.sm.add_widget(self.game)
@@ -523,6 +544,7 @@ class BattleBoggleApp(App):
         self.updateEvent = Clock.schedule_interval(self.game.update,1.0/2.0)
 
     def showMainMenu(self):
+        self.writeConfig()
         self.sm.current = 'menu'
         if self.updateEvent:
             Clock.unschedule(self.updateEvent)
@@ -533,6 +555,11 @@ class BattleBoggleApp(App):
 
     def showDefinition(self, word):
         self.game.showDefinition(word)
+
+    def writeConfig(self):
+        with open('config.ini', 'w') as configFile:
+            self.config.write(configFile)
+
 
 if __name__=='__main__':
     BattleBoggleApp().run()
